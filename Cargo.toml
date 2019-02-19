@@ -13,5 +13,7 @@ crate-type = ["cdylib"]
 
 serde = { version = "1.0.87", features = ["derive"] }
 serde_json = "1"
-typescript-definitions = { version="0.1",  path = "../wasm-typescript-definition", features=["verifier"] }
+typescript-definitions = { version="0.1",  path = "../wasm-typescript-definition", features=["verifiers"] }
 wasm-bindgen = "0.2"
+
+regex = "1.1.0"

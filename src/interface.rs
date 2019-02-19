@@ -44,12 +44,12 @@ pub enum Enum {
 #[derive(Serialize, TypescriptDefinition, TypeScriptify)]
 // #[typescript(isa(T="isa_what"))]
 pub struct Value<T> {
-    value: T,
+    pub value: T,
 }
 
 #[derive(Serialize, TypescriptDefinition, TypeScriptify)]
 pub struct DependsOnValue {
-    value: Vec<Value<i32>>,
+    pub value: Vec<Value<i32>>,
 }
 
 #[derive(TypescriptDefinition, Serialize, TypeScriptify)]
@@ -81,10 +81,16 @@ use std::collections::HashMap;
 #[derive(Serialize, TypescriptDefinition, TypeScriptify)]
 // #[typescript(verify)]
 pub struct Borrow<'a> {
-    raw: &'a str,
-    cow: Cow<'a, str>,
-    map: HashMap<String, i32>,
+    pub raw: &'a str,
+    pub cow: Cow<'a, str>,
+    pub map: HashMap<&'a str, i32>,
     pub array: Vec<String>,
+}
+#[derive(Serialize, TypescriptDefinition, TypeScriptify)]
+pub struct IntMap {
+
+    pub intmap: HashMap<i32, i32>,
+
 }
 
 #[derive(Serialize, TypescriptDefinition, TypeScriptify)]
@@ -94,7 +100,7 @@ pub struct MyBytes {
 }
 #[derive(Serialize, TypescriptDefinition)]
 #[serde(tag = "kind", content = "fields")]
-enum S {
+pub enum S {
     A,
     E2 {
         key: i32,
@@ -108,20 +114,20 @@ enum S {
 }
 
 #[derive(Serialize, TypescriptDefinition)]
-struct Address {
-    number: i32,
-    street: String,
-    zip: i32,
+pub struct Address {
+    pub number: i32,
+    pub street: String,
+    pub zip: i32,
 }
 
 #[derive(Serialize, TypescriptDefinition)]
-struct Record {
-    name: String,
-    address: Address,
-    year: Option<i32>,
+pub struct Record {
+    pub name: String,
+    pub  address: Address,
+    pub year: Option<i32>,
 }
 #[derive(Serialize, TypescriptDefinition)]
-struct Search {
+pub struct Search {
     #[typescript(check = "first")]
-    results: Result<Vec<Record>, String>,
+    pub results: Result<Vec<Record>, String>,
 }

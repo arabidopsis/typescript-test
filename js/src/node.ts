@@ -1,5 +1,5 @@
 import * as fs  from "fs";
-import {Point, isa_Point, Value, isa_Value} from "./mywasm"
+import {Point, isa_Point, Value, isa_Value, IntMap} from "./mywasm"
 
 
 let v2 : Point = { X : 1, Y:1, z:2 };
@@ -18,20 +18,11 @@ type S<T> =
 
 let s : S<number>  = { value: 32 };
 
-let y  = s.value
+let y  = s.value;
+type IntMap2 = { intmap: { [key: number]: number } };
 
+let v4 : IntMap2 = { intmap: { 2: 6, "6": 5, 4:5 } };
 
+type IntMap3 = { intmap: Map<number,number> };
+let v5 : IntMap3 = { intmap: new Map( [[1,2],[3,4]] )};
 
-function fixed(name: string | null): string {
-    function postfix(epithet: string) {
-      return name!.charAt(0) + '.  the ' + epithet; // ok
-    }
-    name = name || "Bob";
-    return postfix("great");
-  }
-
-  let v : Value<number> = { value: 32 }
-
-  if (isa_Value<number>(v, "number")) {
-        let x = v.value;
-  }

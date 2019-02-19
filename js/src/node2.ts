@@ -5,19 +5,27 @@ import * as minimist from "minimist";
 
 import * as wasm from "./mywasm";
 
+
+
+const OK = colors.green("✔️");
+const Fail = colors.red("fail ❌");
+function ok(k:string, p: [string,string]): boolean {
+    let [name, v] = p
+    const o = JSON.parse(v);
+    const f = wasm['isa_'+ name];
+    if (f === undefined) {
+        console.log(Fail, name, "unknown verfiier");
+        return false;
+    }
+    const ok = f(o);
+    const out = ok ? OK :  Fail;
+    console.log(out, colors.magenta(name), k);
+    return ok;
+}
+
 const args : { [K in string]: any } = minimist(process.argv.slice(2));
 
 let m : Object = JSON.parse(fs.readFileSync(args.file, 'utf-8'));
-
-const OK = colors.green("ok");
-const Fail = colors.red("fail");
-function ok(k:string, v:string): boolean {
-    const o = JSON.parse(v);
-    const ok = wasm.isa_FrontendMessage(o);
-    const out = ok ? OK :  Fail;
-    console.log(out, k);
-    return ok;
-}
 
 let success = true;
 
@@ -27,5 +35,9 @@ for (let k in m)  {
     success = success && good;
 
 }
-
+if (success) {
+    console.log("ok 👍".green)
+} else {
+    console.log("failed 👎".red)
+}
 process.exit(success ? 0 : 1)
