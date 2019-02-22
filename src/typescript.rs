@@ -38,6 +38,7 @@ impl TypescriptParseError {
     }
 }
 
+
 #[derive(Parser)]
 #[grammar = "typescript.pest"]
 struct TypescriptParser;
@@ -57,6 +58,7 @@ impl Typescript {
             var: RefCell::new(0),
         }
     }
+
     pub fn parse(
         &self,
         obj: &TokenStream,
@@ -77,9 +79,11 @@ impl Typescript {
         assert!(content.len()==1);
         let newl = nl();
         // obj can't be null or undefined
-
+        assert!(*self.var.borrow() == 0);
+        let eq = eq();
         Ok(quote!(
             {
+                if (#obj #eq undefined) return false;
                 #(#content)*
                 #newl return true;
             }
@@ -98,19 +102,21 @@ impl Typescript {
         for u in expr.into_inner() {
             content.push(
             match u.as_rule() {
-                Rule::union => {is_union=true; let (q, s) = self.parse_union(&obj, u)?; size=s; q},
+                Rule::union => {is_union=true; let (q, n) = self.parse_union(&obj, u)?; size=n; q},
                 Rule::expr => self.parse_expr(&obj, u)?,
+
                 _ => unreachable!()
-            });
+            })
         }
         assert!(content.len() == 1);
-        if is_union && size > 1 {
-            Ok(quote!(#(if ( !( () => { #content } )() ) return false; )*))
+
+        let test = if is_union && size > 1 {
+            quote!(#(if ( !( () => { #content } )() ) return false; )*)
  
         } else {
-            Ok(quote!( #(#content)*) )
-        }
-
+            quote!( #(#content)*)
+        };
+        Ok(test)
     }
     fn parse_item<'a>(
         &self,
@@ -119,10 +125,13 @@ impl Typescript {
     ) -> Result<TokenStream, Error> {
         let mut i = item.into_inner();
         let (singleton, array) = (i.next().unwrap(), i.next().unwrap());
+        
         let mut content = vec![];
         let n = array.as_str().len();
         let narr = n / 2;
         assert!(narr * 2 == n);
+        let mut size = 0;
+        let mut is_union = false;
         let val = obj; // self.pushvar();
 
         for singleton_pair in singleton.into_inner() {
@@ -131,26 +140,26 @@ impl Typescript {
                 Rule::str => self.parse_struct(&val, singleton_pair)?,
                 Rule::tuple => self.parse_tuple(&val, singleton_pair)?,
                 Rule::typ => self.parse_typ(&val, singleton_pair)?,
+                Rule::union => { is_union=true; let (q, n) = self.parse_union(&val, singleton_pair)?; size = n; q},
                 _ => unreachable!(),
             });
         }
         assert!(content.len() == 1);
+        let test = if is_union && size > 1 {
+            quote!(#(if ( !( () => { #content } )() ) return false; )*)
+ 
+        } else {
+            quote!( #(#content)*)
+        };        
         if narr == 0 {
             // self.popvar();
-            Ok(quote!(
-                {
-                    // if (#obj == undefined) return false;
-                    // const #val = #obj;
-                    #(#content)*
-                }
-            ))
+            Ok(test)
         } else {
             let brk = if self.only_first {
                 quote!(break;)
             } else {
                 quote!()
             };
-            let test = quote!( #(#content)* );
 
             let mut vinner = self.pushvar();
             let mut inner = quote!(
@@ -172,7 +181,7 @@ impl Typescript {
                 });
                 vinner = vnext;
             }
-            for i in 0..narr - 1 {
+            for i in 0..narr {
                 self.popvar()
             }
             Ok(quote!(let #vinner = #obj; #inner;))
@@ -223,6 +232,7 @@ impl Typescript {
             if (!(typeof #obj #eq "object")) return false;
             for (let #kval in #obj) {
                 let #val = #obj[#kval];
+                // #val is not undefined....
                 #k;
                 #v;
                 #brk
@@ -245,18 +255,17 @@ impl Typescript {
         let newl = nl();
         let nl = (0..content.len()).map(|_| quote!(#newl));
         // self.popvar();
-        // obj can't be null or undefined
+        // obj can't be undefined
         let n = content.len();
+        // a *single* union doesn't need to check multiple failures
+        // looking for a success....
         let ret = if n == 1 {
                 quote!( 
-                    if (#obj == undefined) return false;
                     #(#content)* 
                 )
             } else {
                 quote!(
                     {
-                    if (#obj == undefined) return false;
-
                     #( #nl if ( ( () => { #content; return true; } )() ) return true; )*
                     #newl return false;
                     }
@@ -294,6 +303,7 @@ impl Typescript {
         }
         self.popvar();
         let len = Literal::usize_unsuffixed(content.len());
+        // isArray procteds us from null obj
         Ok(quote!(if (!Array.isArray(#obj) || !(#obj.length #eq #len)) return false; #(#content)* ))
     }
     fn parse_struct<'a>(
@@ -323,7 +333,9 @@ impl Typescript {
             });
         }
         self.popvar();
-        Ok(quote!(if(#obj == undefined) return false; #(#ret)*))
+        // need to protect object access from the null object
+        // obj is already not undefined
+        Ok(quote!(if( #obj #eq null) return false; #(#ret)*))
     }
 
     fn pushvar(&self) -> TokenStream {
@@ -336,6 +348,10 @@ impl Typescript {
     fn popvar(&self) {
         let mut var = self.var.borrow_mut();
         *var -= 1;
+        assert!(*var >=0);
+    }
+    fn level(&self) -> i32 {
+        return *self.var.borrow()
     }
 }
 
