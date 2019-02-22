@@ -67,30 +67,47 @@ impl Typescript {
         for item in pair.into_inner() {
             match item.as_rule() {
                 Rule::EOI => break,
-                other => assert_eq!(other, Rule::item),
+                other => assert_eq!(other, Rule::expr),
             }
-            content.push(self.parse_item(obj, item)?);
+            content.push(self.parse_expr(obj, item)?);
         }
+        assert!(content.len()==1);
         let newl = nl();
         // obj can't be null or undefined
-        if content.len() == 1 {
-            Ok(quote!(
-                {
 
-                    #(#content)*
-                    #newl return true;
-                }
-            ))
-        } else {
-            let nl = (0..content.len()).map(|_| quote!(#newl));
-            Ok(quote!(
-                {
-
-                    #( #nl if ( ( () => { #content; return true; } )() ) return true; )*
-                    #newl return false;
-                }
-            ))
+        Ok(quote!(
+            {
+                #(#content)*
+                #newl return true;
+            }
+        ))
+        
+        
+    }
+    fn parse_expr<'a>(
+        &self,
+        obj: &TokenStream,
+        expr: Pair<'a, Rule>,
+    ) -> Result<TokenStream, Error> {
+        let mut content = vec![];
+        let mut is_union = false;
+        let mut size = 0;
+        for u in expr.into_inner() {
+            content.push(
+            match u.as_rule() {
+                Rule::union => {is_union=true; let (q, s) = self.parse_union(&obj, u)?; size=s; q},
+                Rule::expr => self.parse_expr(&obj, u)?,
+                _ => unreachable!()
+            });
         }
+        assert!(content.len() == 1);
+        if is_union && size > 1 {
+            Ok(quote!(#(if ( !( () => { #content } )() ) return false; )*))
+ 
+        } else {
+            Ok(quote!( #(#content)*) )
+        }
+
     }
     fn parse_item<'a>(
         &self,
@@ -104,16 +121,11 @@ impl Typescript {
         let narr = n / 2;
         assert!(narr * 2 == n);
         let val = obj; // self.pushvar();
-        let mut is_union = false;
 
         for singleton_pair in singleton.into_inner() {
             content.push(match singleton_pair.as_rule() {
                 Rule::map => self.parse_map(&val, singleton_pair)?,
                 Rule::str => self.parse_struct(&val, singleton_pair)?,
-                Rule::union => {
-                    is_union = true;
-                    self.parse_union(&val, singleton_pair)?
-                }
                 Rule::tuple => self.parse_tuple(&val, singleton_pair)?,
                 Rule::typ => self.parse_typ(&val, singleton_pair)?,
                 _ => unreachable!(),
@@ -134,11 +146,8 @@ impl Typescript {
             } else {
                 quote!()
             };
-            let test = if is_union {
-                quote!(#(if ( !( () => { #content } )() ) return false; )*)
-            } else {
-                quote!( #(#content)* )
-            };
+            let test = quote!( #(#content)* );
+
             let mut vinner = self.pushvar();
             let mut inner = quote!(
                 {
@@ -181,11 +190,11 @@ impl Typescript {
         map: Pair<'a, Rule>,
     ) -> Result<TokenStream, Error> {
         let mut i = map.into_inner();
-        let (typ, item) = (i.next().unwrap(), i.next().unwrap());
+        let (typ, expr) = (i.next().unwrap(), i.next().unwrap());
         let k = typ.as_str();
         // let typ = self.parse_typ(typ)?;
         let val = self.pushvar();
-        let v = self.parse_item(&val, item)?;
+        let v = self.parse_expr(&val, expr)?;
         let eq = eq();
         let kval = self.pushvar();
         let k = if k == "number" {
@@ -219,7 +228,7 @@ impl Typescript {
         &self,
         obj: &TokenStream,
         union: Pair<'a, Rule>,
-    ) -> Result<TokenStream, Error> {
+    ) -> Result<(TokenStream, usize), Error> {
         let mut content = vec![];
         let val = self.pushvar();
         for item in union.into_inner() {
@@ -232,14 +241,24 @@ impl Typescript {
         let nl = (0..content.len()).map(|_| quote!(#newl));
         self.popvar();
         // obj can't be null or undefined
-        Ok(quote!(
-            {
-                if (#obj == undefined) return false;
+        let n = content.len();
+        let ret = if n == 1 {
+                quote!( 
+                    if (#obj == undefined) return false;
+                    #(#content)* 
+                )
+            } else {
+                quote!(
+                    {
+                        if (#obj == undefined) return false;
 
-                #( #nl if ( ( () => { #content; return true; } )() ) return true; )*
-                #newl return false;
-            }
-        ))
+                        #( #nl if ( ( () => { #content; return true; } )() ) return true; )*
+                        #newl return false;
+                    }
+                )
+            };
+
+        return Ok((ret, n))
     }
     fn parse_tuple<'a>(
         &self,
@@ -249,13 +268,13 @@ impl Typescript {
         let mut content = vec![];
         let eq = eq();
         let val = self.pushvar();
-        for (i, item) in tuple.into_inner().enumerate() {
+        for (i, expr) in tuple.into_inner().enumerate() {
             let i = Literal::usize_unsuffixed(i);
             let n = quote!(#obj[#i]);
 
-            match item.as_rule() {
-                Rule::item => {
-                    let verify = self.parse_item(&val, item)?;
+            match expr.as_rule() {
+                Rule::expr => {
+                    let verify = self.parse_expr(&val, expr)?;
 
                     content.push(quote! {
                         if (#n #eq undefined) return false;
@@ -280,10 +299,10 @@ impl Typescript {
         let mut keys = vec![];
         let mut values = vec![];
         let val = self.pushvar();
-        for item in pair.into_inner() {
-            match item.as_rule() {
-                Rule::ident => keys.push(ident_from_str(&item.as_str())),
-                Rule::item => values.push(self.parse_item(&val, item)?),
+        for expr in pair.into_inner() {
+            match expr.as_rule() {
+                Rule::ident => keys.push(ident_from_str(&expr.as_str())),
+                Rule::expr => values.push(self.parse_expr(&val, expr)?),
                 _ => unreachable!(),
             }
         }
