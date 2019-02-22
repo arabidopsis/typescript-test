@@ -13,7 +13,17 @@ crate-type = ["cdylib"]
 
 serde = { version = "1.0.87", features = ["derive"] }
 serde_json = "1"
-typescript-definitions = { version="0.1",  path = "../wasm-typescript-definition", features=["verifiers"] }
+typescript-definitions = { version="0.1",  path = "../wasm-typescript-definition", features = ["type-guards"] }
 wasm-bindgen = "0.2"
-
+chrono = { version = "0.4", features = ["serde"] }
+either = { version = "1.5", features = ["serde"] }
 regex = "1.1.0"
+failure = "0.1.5"
+pest = "2.1.0"
+pest_derive = "2.1.0"
+quote = "0.6.11"
+proc-macro2 = "0.4.27"
+structopt = "0.2"
+syn = "0.15.26"
+lazy_static = "1.2.0"
+console = "0.7.5"

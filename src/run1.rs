@@ -42,7 +42,7 @@ pub fn run() -> Result<(), Error> {
     println!("{}", Enum::type_script_ify());
     println!("{}", FrontendMessage::type_script_ify());
     println!("{}", MyBytes::type_script_ify());
-    println!("{}", MyBytes::type_script_verify().unwrap());
+    println!("{}", MyBytes::type_script_guard().unwrap());
 
     Ok(())
 }

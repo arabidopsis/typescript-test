@@ -1,23 +1,21 @@
 {
-  "name": "js",
+  "name": "ts-guards",
   "version": "1.0.0",
-  "description": "test json",
-  "main": "node.js",
+  "description": "test typescript-definitions json guards",
+  "main": "node2.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "tsc": "tsc"
   },
-  "author": "",
+  "author": "Ian Castleden",
   "license": "ISC",
   "devDependencies": {
-    "@types/chai": "^4.1.7",
-    "@types/mocha": "^5.2.6",
     "@types/node": "^9.4.6",
-    "chai": "^4.2.0",
-    "mocha": "^5.2.0",
     "ts-node": "^8.0.2",
     "typescript": "^3.3.3"
   },
   "dependencies": {
-    "minimist": "^1.2.0"
+    "chalk": "^2.4.2",
+    "minimist": "^1.2.0",
+    "purdy": "^3.4.1"
   }
 }

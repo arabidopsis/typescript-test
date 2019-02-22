@@ -10,7 +10,7 @@ bindgen:
 wasm:
 	#RUST_LOG=error wasm-pack build --dev
 	wasm-pack build --dev
-	cp pkg/mywasm.d.ts js/src/mywasm.ts
+	@tail -n +2 pkg/mywasm.d.ts | prettier --parser typescript > js/src/mywasm.ts
 
 install:
 	curl https://sh.rustup.rs -sSf | sh
@@ -36,7 +36,6 @@ tsc:
 
 run:
 	@cargo run > junk.json
-	@node js/dist/node2.js --file junk.json
-
+	@node js/dist/node2.js --file junk.json --all
 
 .PHONY: pretty install wasm bindgen tsc run

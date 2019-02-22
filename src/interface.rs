@@ -54,7 +54,7 @@ pub struct DependsOnValue {
 
 #[derive(TypescriptDefinition, Serialize, TypeScriptify)]
 #[serde(tag = "tag", content = "fields")]
-#[typescript(verify = "true")]
+#[typescript(guard = "true")]
 /// This is some API Event.
 pub enum FrontendMessage {
     Init {
@@ -113,7 +113,7 @@ pub enum S {
     Z,
 }
 
-#[derive(Serialize, TypescriptDefinition)]
+#[derive(Serialize, TypescriptDefinition, Clone)]
 pub struct Address {
     pub number: i32,
     pub street: String,
@@ -128,6 +128,47 @@ pub struct Record {
 }
 #[derive(Serialize, TypescriptDefinition)]
 pub struct Search {
-    #[typescript(check = "first")]
+    #[typescript(array_check = "first")]
     pub results: Result<Vec<Record>, String>,
+}
+
+#[derive(Serialize, TypescriptDefinition)]
+pub enum TyEnum {
+    Red,
+    Green,
+    Blue,
+}
+
+
+#[derive(Serialize, TypescriptDefinition)]
+pub struct Value2<T> {
+    #[typescript(user_type_guard=true)]
+    pub value: T,
+}
+
+#[derive(Serialize, TypescriptDefinition)]
+pub struct DependsOnValue2 {
+    #[typescript(user_type_guard=true)]
+    pub value: Value2<Vec<i32>>,
+}
+
+
+use chrono::prelude::*; 
+use std::time::{Duration, SystemTime};
+use std::path::PathBuf;
+#[derive(Serialize, TypescriptDefinition)]
+pub struct Chrono {
+    #[typescript(ts_type="string")]
+    pub datetime: DateTime<Local>,
+    pub duration: Duration,
+    pub systime: SystemTime,
+    pub dt: chrono::DateTime<chrono::Utc>,
+
+    pub path: std::path::PathBuf,
+}
+use either;
+#[derive(Serialize, TypescriptDefinition)]
+pub struct Either {
+
+    pub either : either::Either<Address,String>
 }
