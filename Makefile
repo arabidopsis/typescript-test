@@ -38,4 +38,8 @@ run:
 	@cargo run > junk.json
 	@node js/dist/node2.js --file junk.json --all
 
-.PHONY: pretty install wasm bindgen tsc run
+
+pest:
+	@cargo run -- --cmd "$cmd" | prettier --parser typescript | bat -l typescript
+
+.PHONY: pretty install wasm bindgen tsc run pest

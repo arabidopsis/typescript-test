@@ -1,13 +1,13 @@
 export type Newtype = number;
 
-export const isa_Newtype = (obj: any): obj is Newtype => {
+export const isNewtype = (obj: any): obj is Newtype => {
   if (!(typeof obj === "number")) return false;
   return true;
 };
 
 export type Point = { X: number; Y: number; z: number };
 
-export const isa_Point = (obj: any): obj is Point => {
+export const isPoint = (obj: any): obj is Point => {
   if (obj == undefined) return false;
   if (obj.X === undefined) return false;
   {
@@ -32,7 +32,7 @@ export type Enum =
   | { V2: { Bar: number; Baz: number } }
   | { V3: { Quux: string } };
 
-export const isa_Enum = (obj: any): obj is Enum => {
+export const isEnum = (obj: any): obj is Enum => {
   if (obj == undefined) return false;
   if (
     (() => {
@@ -83,30 +83,30 @@ export const isa_Enum = (obj: any): obj is Enum => {
 
 export type Value<T> = { value: T };
 
-export const isa_Value = <T>(obj: any, typename: string): obj is Value<T> => {
+export const isValue = <T>(obj: any, typename: string): obj is Value<T> => {
   if (obj == undefined) return false;
   if (obj.value === undefined) return false;
   {
     const val = obj.value;
-    if (!isa_T<T>(val, typename)) return false;
+    if (!isT<T>(val, typename)) return false;
   }
   return true;
 };
 // generic test
-export const isa_T = <T>(val: any, typename: string): val is T => {
+export const isT = <T>(val: any, typename: string): val is T => {
   return typeof val === typename;
 };
 
 export type DependsOnValue = { value: Value<number>[] };
 
-export const isa_DependsOnValue = (obj: any): obj is DependsOnValue => {
+export const isDependsOnValue = (obj: any): obj is DependsOnValue => {
   if (obj == undefined) return false;
   if (obj.value === undefined) return false;
   {
     const val = obj.value;
     if (!Array.isArray(val)) return false;
     for (let x of val) {
-      if (!isa_Value<number>(x, "number")) return false;
+      if (!isValue<number>(x, "number")) return false;
     }
   }
   return true;
@@ -129,7 +129,7 @@ export type FrontendMessage =
     }
   | { tag: "Stuff"; fields: { borrow: number[] } };
 
-export const isa_FrontendMessage = (obj: any): obj is FrontendMessage => {
+export const isFrontendMessage = (obj: any): obj is FrontendMessage => {
   if (obj == undefined) return false;
   if (
     (() => {
@@ -241,7 +241,7 @@ export type Borrow = {
   array: string[];
 };
 
-export const isa_Borrow = (obj: any, typename: string): obj is Borrow => {
+export const isBorrow = (obj: any, typename: string): obj is Borrow => {
   if (obj == undefined) return false;
   if (obj.raw === undefined) return false;
   {
@@ -275,7 +275,7 @@ export const isa_Borrow = (obj: any, typename: string): obj is Borrow => {
 
 export type IntMap = { intmap: { [key: number]: number } };
 
-export const isa_IntMap = (obj: any): obj is IntMap => {
+export const isIntMap = (obj: any): obj is IntMap => {
   if (obj == undefined) return false;
   if (obj.intmap === undefined) return false;
   {
@@ -292,7 +292,7 @@ export const isa_IntMap = (obj: any): obj is IntMap => {
 
 export type MyBytes = { buffer: string };
 
-export const isa_MyBytes = (obj: any): obj is MyBytes => {
+export const isMyBytes = (obj: any): obj is MyBytes => {
   if (obj == undefined) return false;
   if (obj.buffer === undefined) return false;
   {
@@ -307,7 +307,7 @@ export type S =
   | { kind: "E2"; fields: { key: number; a: number } }
   | { kind: "F"; fields: [number, string] };
 
-export const isa_S = (obj: any): obj is S => {
+export const isS = (obj: any): obj is S => {
   if (obj == undefined) return false;
   if (
     (() => {
@@ -358,7 +358,7 @@ export const isa_S = (obj: any): obj is S => {
 
 export type Address = { number: number; street: string; zip: number };
 
-export const isa_Address = (obj: any): obj is Address => {
+export const isAddress = (obj: any): obj is Address => {
   if (obj == undefined) return false;
   if (obj.number === undefined) return false;
   {
@@ -380,7 +380,7 @@ export const isa_Address = (obj: any): obj is Address => {
 
 export type Record = { name: string; address: Address; year: number | null };
 
-export const isa_Record = (obj: any): obj is Record => {
+export const isRecord = (obj: any): obj is Record => {
   if (obj == undefined) return false;
   if (obj.name === undefined) return false;
   {
@@ -390,7 +390,7 @@ export const isa_Record = (obj: any): obj is Record => {
   if (obj.address === undefined) return false;
   {
     const val = obj.address;
-    if (!isa_Address(val)) return false;
+    if (!isAddress(val)) return false;
   }
   if (obj.year === undefined) return false;
   {
@@ -404,7 +404,7 @@ export const isa_Record = (obj: any): obj is Record => {
 
 export type Search = { results: { Ok: Record[] } | { Err: string } };
 
-export const isa_Search = (obj: any): obj is Search => {
+export const isSearch = (obj: any): obj is Search => {
   if (obj == undefined) return false;
   if (obj.results === undefined) return false;
   {
@@ -416,7 +416,7 @@ export const isa_Search = (obj: any): obj is Search => {
           if (v == undefined) return false;
           if (!Array.isArray(v)) return false;
           for (let x of v) {
-            if (!isa_Record(x)) return false;
+            if (!isRecord(x)) return false;
             break;
           }
           return true;
@@ -426,6 +426,115 @@ export const isa_Search = (obj: any): obj is Search => {
           if (!(typeof v === "string")) return false;
           return true;
         })(val.Err)
+      )
+        return true;
+      return false;
+    }
+  }
+  return true;
+};
+
+export enum TyEnum {
+  Red = "Red",
+  Green = "Green",
+  Blue = "Blue"
+}
+
+export const isTyEnum = (obj: any): obj is TyEnum => {
+  if (!(obj === "Red" || obj === "Green" || obj === "Blue")) return false;
+  return true;
+};
+
+export type Value2<T> = { value: T };
+
+export const isValue2 = <T>(obj: any, typename: string): obj is Value2<T> => {
+  if (obj == undefined) return false;
+  if (obj.value === undefined) return false;
+  {
+    const val = obj.value;
+    if (!isT<T>(val, typename)) return false;
+  }
+  return true;
+};
+
+export type DependsOnValue2 = { value: Value2<number[]> };
+
+export const isDependsOnValue2 = (obj: any): obj is DependsOnValue2 => {
+  if (obj == undefined) return false;
+  if (obj.value === undefined) return false;
+  {
+    const val = obj.value;
+    if (!isValue2<number[]>(val, "number[]")) return false;
+  }
+  return true;
+};
+
+export type Chrono = {
+  datetime: string;
+  duration: { secs: number; nanos: number };
+  systime: { secs_since_epoch: number; nanos_since_epoch: number };
+  dt: string;
+  path: string;
+};
+
+export const isChrono = (obj: any): obj is Chrono => {
+  if (obj == undefined) return false;
+  if (obj.datetime === undefined) return false;
+  {
+    const val = obj.datetime;
+    if (!(typeof val === "string")) return false;
+  }
+  if (obj.duration === undefined) return false;
+  {
+    const val = obj.duration;
+    {
+      if (val === null) return false;
+      if (!(typeof val.secs === "number")) return false;
+      if (!(typeof val.nanos === "number")) return false;
+    }
+  }
+  if (obj.systime === undefined) return false;
+  {
+    const val = obj.systime;
+    {
+      if (val === null) return false;
+      if (!(typeof val.secs_since_epoch === "number")) return false;
+      if (!(typeof val.nanos_since_epoch === "number")) return false;
+    }
+  }
+  if (obj.dt === undefined) return false;
+  {
+    const val = obj.dt;
+    if (!(typeof val === "string")) return false;
+  }
+  if (obj.path === undefined) return false;
+  {
+    const val = obj.path;
+    if (!(typeof val === "string")) return false;
+  }
+  return true;
+};
+
+export type Either = { either: { Left: Address } | { Right: string } };
+
+export const isEither = (obj: any): obj is Either => {
+  if (obj == undefined) return false;
+  if (obj.either === undefined) return false;
+  {
+    const val = obj.either;
+    {
+      if (val === null) return false;
+      if (
+        (v => {
+          if (v == undefined) return false;
+          if (!isAddress(v)) return false;
+          return true;
+        })(val.Left) ||
+        (v => {
+          if (v == undefined) return false;
+          if (!(typeof v === "string")) return false;
+          return true;
+        })(val.Right)
       )
         return true;
       return false;

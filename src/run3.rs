@@ -1,4 +1,5 @@
 
+#![cfg(unix)]
 // use serde_json::Error;
 use super::typescript::{Typescript,TypescriptParseError};
 use super::patch::patch;
@@ -21,7 +22,8 @@ pub struct Opts {
     pub path: Option<PathBuf>,
     #[structopt(long)]
     pub cmd: Option<String>,
-
+    #[structopt(long)]
+    pub first: bool,
 }
 
 #[allow(unused)]
@@ -34,7 +36,7 @@ pub fn run() -> Result<(), Error> {
     // let contents = fs::read_to_string(opts.path.unwrap().as_path())?;
     let contents = opts.cmd.unwrap();
 
-    let t = Typescript::new();
+    let t = Typescript::with_first(opts.first);
 
     set_colors_enabled(true);
     
@@ -42,6 +44,7 @@ pub fn run() -> Result<(), Error> {
         Ok(res) =>  println!("{}", patch(&res.to_string())),
         Err(err) => {
            if let Some(ref pe) = err.downcast_ref::<TypescriptParseError>() {
+                eprintln!("{}",err);
                 eprintln!("{}", style(contents).dim());
                 eprintln!("{}{}",style(format!("{:─^width$}","",width=pe.column().saturating_sub(1))).red(),
                 "^");

@@ -1,5 +1,5 @@
 use serde_json;
-use serde_json::Error;
+use failure::Error;
 use std::collections::HashMap;
 use std::borrow::Cow;
 use regex::Regex;

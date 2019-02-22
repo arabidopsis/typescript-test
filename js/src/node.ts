@@ -35,3 +35,4 @@ type T = { a: number, b: object};
 let z : T = {a: 22, b: {a:4, b:"s", c:444} };
 // let z2 : T = {a: 22, b: "xxxx" };
 
+type S2 =  {[key: number]: (number | string) };

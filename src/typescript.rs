@@ -49,8 +49,11 @@ pub struct Typescript {
 
 impl Typescript {
     pub fn new() -> Self {
+        Self::with_first(false)
+    }
+    pub fn with_first(only_first: bool) -> Self {
         Typescript {
-            only_first: false,
+            only_first: only_first,
             var: RefCell::new(0),
         }
     }
@@ -137,6 +140,7 @@ impl Typescript {
             Ok(quote!(
                 {
                     // if (#obj == undefined) return false;
+                    // const #val = #obj;
                     #(#content)*
                 }
             ))
@@ -154,7 +158,7 @@ impl Typescript {
                     if (!Array.isArray(#vinner)) return false;
                     for (let #val of #vinner) {
                         #test
-                        #brk;
+                        #brk
                     }
                 }
             );
@@ -164,10 +168,11 @@ impl Typescript {
                 if (!Array.isArray(#vnext)) return false;
                 for (let #vinner of #vnext) {
                     #inner
+                    #brk
                 });
                 vinner = vnext;
             }
-            for i in 0..narr {
+            for i in 0..narr - 1 {
                 self.popvar()
             }
             Ok(quote!(let #vinner = #obj; #inner;))
@@ -192,6 +197,7 @@ impl Typescript {
         let mut i = map.into_inner();
         let (typ, expr) = (i.next().unwrap(), i.next().unwrap());
         let k = typ.as_str();
+
         // let typ = self.parse_typ(typ)?;
         let val = self.pushvar();
         let v = self.parse_expr(&val, expr)?;
@@ -202,7 +208,6 @@ impl Typescript {
                 if (+#kval #eq NaN) return false;
             }
         } else {
-            //self.verify_type(&quote!(k), &ts.args[0]);
             // always going to be a string
             quote!()
         };
@@ -230,16 +235,16 @@ impl Typescript {
         union: Pair<'a, Rule>,
     ) -> Result<(TokenStream, usize), Error> {
         let mut content = vec![];
-        let val = self.pushvar();
+        // let val = self.pushvar();
         for item in union.into_inner() {
             match item.as_rule() {
-                Rule::item => content.push(self.parse_item(&val, item)?),
+                Rule::item => content.push(self.parse_item(&obj, item)?),
                 _ => unreachable!(),
             }
         }
         let newl = nl();
         let nl = (0..content.len()).map(|_| quote!(#newl));
-        self.popvar();
+        // self.popvar();
         // obj can't be null or undefined
         let n = content.len();
         let ret = if n == 1 {
@@ -250,10 +255,10 @@ impl Typescript {
             } else {
                 quote!(
                     {
-                        if (#obj == undefined) return false;
+                    if (#obj == undefined) return false;
 
-                        #( #nl if ( ( () => { #content; return true; } )() ) return true; )*
-                        #newl return false;
+                    #( #nl if ( ( () => { #content; return true; } )() ) return true; )*
+                    #newl return false;
                     }
                 )
             };
@@ -308,17 +313,17 @@ impl Typescript {
         }
         let mut ret = vec![];
         let eq = eq();
-        for (n, v) in keys.iter().zip(values) {
+        for (n, verify) in keys.iter().zip(values) {
             ret.push(quote! {
                 if (#obj.#n #eq undefined) return false;
                 {
                     const #val = #obj.#n;
-                    #v;
+                    #verify
                 }
             });
         }
         self.popvar();
-        Ok(quote!(if(#obj == undefined) return false; #(#ret)*;))
+        Ok(quote!(if(#obj == undefined) return false; #(#ret)*))
     }
 
     fn pushvar(&self) -> TokenStream {
