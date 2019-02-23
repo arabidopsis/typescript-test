@@ -1,15 +1,12 @@
-// use serde_json::Error;
+
 use failure::Error;
-mod patch;
 mod interface;
+mod patch;
 mod typescript;
-//mod run1;
-// mod run2;
+mod run1;
+mod run2;
 mod run3;
 
-
-
 fn main() -> Result<(), Error> {
-
-    run3::run()
+    run1::run()
 }

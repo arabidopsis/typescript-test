@@ -27,3 +27,5 @@ structopt = "0.2"
 syn = "0.15.26"
 lazy_static = "1.2.0"
 console = "0.7.5"
+bytes = "0.4.11"
+im = { version = "12.3.1", features = ["serde"] }

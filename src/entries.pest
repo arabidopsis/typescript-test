@@ -1,0 +1,25 @@
+WHITESPACE = _{ WHITE_SPACE }
+
+ident = @{ XID_START ~ XID_CONTINUE* }
+union = {   item ~ ("|" ~ item)*  }
+map = {  "{" ~ "[" ~ "key" ~ ":" ~ key ~ "]" ~ ":" ~ expr ~ "}" }
+str = {  "{" ~ (ident ~ ":" ~ expr)? ~ ("," ~ ident ~ ":" ~ expr )* ~ "}" }
+tuple = { "[" ~ expr ~ ("," ~ expr )* ~ "]" }
+key = { "number" | "string" }
+typ = { "number" | "object" | "string" | "boolean" | "null" }
+singleton = { str | map | tuple | typ | hash | "(" ~ union ~ ")" }
+skip = { "_"}
+hash = { "#" ~  (skip | ident) }
+typname = { hash | ident}
+array = { "[]"* }
+item = { singleton ~ array  }
+expr = { union | "(" ~ expr ~ ")" }
+
+entry = {lhs ~ "=>" ~ expr }
+prefix = {"type" ~ ident ~ "=" }
+patha = { prefix? ~ "(" ~ ident ~ ("," ~ ident)* ~ ")" }
+pathb = { "::"? ~ ident ~ ("::" ~ ident)*  }
+generics = { "<" ~ hash ~ ("," ~ hash)* ~ ">" }
+lhs = {  (patha | pathb ) ~ generics? }
+entrylist = { entry ~ (";"? ~ entry )* }
+typescript = { SOI ~ entrylist  ~ EOI }

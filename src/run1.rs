@@ -3,7 +3,7 @@
 // extern crate typescript_definitions;
 // use serde::{Deserialize, Serialize};
 use serde_json;
-use serde_json::Error;
+use failure::Error;
 
 #[allow(unused)]
 pub fn run() -> Result<(), Error> {
@@ -43,6 +43,20 @@ pub fn run() -> Result<(), Error> {
     println!("{}", FrontendMessage::type_script_ify());
     println!("{}", MyBytes::type_script_ify());
     println!("{}", MyBytes::type_script_guard().unwrap());
+
+    // struct SB {
+    //     buff : ::bytes::Bytes
+    // }
+    // let sb = SB { buff: ::bytes::Bytes::from(&b"this is a string"[..]) };
+    // println!("{}", serde_json::to_string(&sb)?);
+    use im::{vector, hashmap};
+
+    let s2 : ::im::Vector<i32> = vector![1,2,3,4];
+    
+    println!("{}", serde_json::to_string(&s2)?);
+
+    let s3 : ::im::HashMap<i32,&str> = hashmap!(1 => "s", 2 => "3");
+    println!("{}", serde_json::to_string(&s3)?);
 
     Ok(())
 }

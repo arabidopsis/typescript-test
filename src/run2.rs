@@ -80,7 +80,7 @@ pub fn run() -> Result<(), Error> {
         buffer: vec![5u8, 6, 7, 8, 9, 186, 233, 55,66],
     }}
 
-    addit2! {hm, Chrono { datetime: chrono::Local::now(), 
+    addit2! {hm, Chrono { // datetime: chrono::Local::now(), 
             duration: std::time::Duration::new(22,3),
             systime: std::time::SystemTime::now(),
             path: std::path::PathBuf::from("/a/b/c/d.txt"),

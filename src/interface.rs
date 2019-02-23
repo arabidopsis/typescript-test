@@ -88,9 +88,7 @@ pub struct Borrow<'a> {
 }
 #[derive(Serialize, TypescriptDefinition, TypeScriptify)]
 pub struct IntMap {
-
     pub intmap: HashMap<i32, i32>,
-
 }
 
 #[derive(Serialize, TypescriptDefinition, TypeScriptify)]
@@ -123,7 +121,7 @@ pub struct Address {
 #[derive(Serialize, TypescriptDefinition)]
 pub struct Record {
     pub name: String,
-    pub  address: Address,
+    pub address: Address,
     pub year: Option<i32>,
 }
 #[derive(Serialize, TypescriptDefinition)]
@@ -139,36 +137,34 @@ pub enum TyEnum {
     Blue,
 }
 
-
 #[derive(Serialize, TypescriptDefinition)]
 pub struct Value2<T> {
-    #[typescript(user_type_guard=true)]
+    #[typescript(user_type_guard = true)]
     pub value: T,
 }
 
 #[derive(Serialize, TypescriptDefinition)]
 pub struct DependsOnValue2 {
-    #[typescript(user_type_guard=true)]
+    #[typescript(user_type_guard = true)]
     pub value: Value2<Vec<i32>>,
 }
 
-
-use chrono::prelude::*; 
-use std::time::{Duration, SystemTime};
+// use chrono::prelude::*;
 use std::path::PathBuf;
+use std::time::{Duration, SystemTime};
 #[derive(Serialize, TypescriptDefinition)]
 pub struct Chrono {
-    #[typescript(ts_type="string")]
-    pub datetime: DateTime<Local>,
+    #[typescript(ts_type = "string")]
+    // pub datetime: DateTime<Local>,
     pub duration: Duration,
     pub systime: SystemTime,
-    pub dt: chrono::DateTime<chrono::Utc>,
+    pub dt: ::chrono::DateTime<::chrono::Utc>,
 
     pub path: std::path::PathBuf,
 }
 use either;
 #[derive(Serialize, TypescriptDefinition)]
 pub struct Either {
-
-    pub either : either::Either<Address,String>
+    pub either: either::Either<Address, String>,
 }
+
