@@ -26,6 +26,10 @@ proc-macro2 = "0.4.27"
 structopt = "0.2"
 syn = "0.15.26"
 lazy_static = "1.2.0"
-console = "0.7.5"
+
 bytes = "0.4.11"
+cfg-if = "0.1"
 im = { version = "12.3.1", features = ["serde"] }
+
+[target.'cfg(not(target_arch="wasm32"))'.dependencies]
+console = "0.7.5"

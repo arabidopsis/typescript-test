@@ -145,4 +145,13 @@ So typescript has guard for global
 
 for fields we have #[ts(type=,..., guard, rust=::ss::bb::Derive)] or use as
 
-say for ::im::Vector #[ts(as="Vec")]
+say for ::im::Vector #[ts(as="Vec")] or "alias"
+
+write a config file
+
+path=[a,b,c] generics=[K,V] expr="#K[]"
+
+The for simple trans we have given TSType match path=[a,b,c]
+then parse(TSTYpe, expr) => string[]
+
+for verifier parse(obj, TSType, expr) => {.....}

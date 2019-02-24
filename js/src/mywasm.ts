@@ -452,25 +452,27 @@ export const isValue2 = <T>(obj: any, typename: string): obj is Value2<T> => {
   if (obj.value === undefined) return false;
   {
     const val = obj.value;
-    if (!isT<T>(val, typename)) return false;
+    {
+      if (!(typeof val === "object")) return false;
+      return true;
+    }
   }
   return true;
 };
 
-export type DependsOnValue2 = { value: Value2<number[]> };
+export type DependsOnValue2 = { value: Value2<number> };
 
 export const isDependsOnValue2 = (obj: any): obj is DependsOnValue2 => {
   if (obj == undefined) return false;
   if (obj.value === undefined) return false;
   {
     const val = obj.value;
-    if (!isValue2<number[]>(val, "number[]")) return false;
+    if (!isValue2<number>(val, "number")) return false;
   }
   return true;
 };
 
 export type Chrono = {
-  datetime: string;
   duration: { secs: number; nanos: number };
   systime: { secs_since_epoch: number; nanos_since_epoch: number };
   dt: string;
@@ -479,11 +481,6 @@ export type Chrono = {
 
 export const isChrono = (obj: any): obj is Chrono => {
   if (obj == undefined) return false;
-  if (obj.datetime === undefined) return false;
-  {
-    const val = obj.datetime;
-    if (!(typeof val === "string")) return false;
-  }
   if (obj.duration === undefined) return false;
   {
     const val = obj.duration;

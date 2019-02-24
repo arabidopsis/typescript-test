@@ -6,20 +6,21 @@ map = {  "{" ~ "[" ~ "key" ~ ":" ~ key ~ "]" ~ ":" ~ expr ~ "}" }
 str = {  "{" ~ (ident ~ ":" ~ expr)? ~ ("," ~ ident ~ ":" ~ expr )* ~ "}" }
 tuple = { "[" ~ expr ~ ("," ~ expr )* ~ "]" }
 key = { "number" | "string" }
-typ = { "number" | "object" | "string" | "boolean" | "null" }
-singleton = { str | map | tuple | typ | hash | "(" ~ union ~ ")" }
-skip = { "_"}
-hash = { "#" ~  (skip | ident) }
-typname = { hash | ident}
+typ = { "number" | "object" | "string" | "boolean" | "null" | hash  }
+singleton = { str | map | tuple | typ | "(" ~ union ~ ")" }
+hash = { "#" ~  ident }
 array = { "[]"* }
 item = { singleton ~ array  }
 expr = { union | "(" ~ expr ~ ")" }
+typescript = { SOI ~ expr  ~ EOI }
 
-entry = {lhs ~ "=>" ~ expr }
-prefix = {"type" ~ ident ~ "=" }
-patha = { prefix? ~ "(" ~ ident ~ ("," ~ ident)* ~ ")" }
-pathb = { "::"? ~ ident ~ ("::" ~ ident)*  }
-generics = { "<" ~ hash ~ ("," ~ hash)* ~ ">" }
-lhs = {  (patha | pathb ) ~ generics? }
+
+
+lhs = { "::"? ~ ident ~ ("::" ~ ident)*  }
+generics = { "<" ~ ident ~ ("," ~ ident)* ~ ">" }
+
+ll = _{ lhs ~ ("|" ~ lhs)* }
+lhslist = { ll | "(" ~ ll ~ ")" }
+entry = { lhslist ~ generics? ~ "=>" ~ expr }
 entrylist = { entry ~ (";"? ~ entry )* }
-typescript = { SOI ~ entrylist  ~ EOI }
+markup = { SOI ~ entrylist  ~ EOI }

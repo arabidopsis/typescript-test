@@ -32,12 +32,50 @@ pub fn run() -> Result<(), Error> {
     // let contents = fs::read_to_string(opts.path.unwrap().as_path())?;
     let contents = opts.cmd.unwrap();
 
-    let t = Typescript::with_first(opts.first);
+    let mut t = Typescript::with_first(opts.first);
 
     set_colors_enabled(true);
 
     match t.parse(&quote!(obj), &contents) {
         Ok(res) => println!("{}", patch(&res.to_string())),
+        Err(err) => {
+            if let Some(ref pe) = err.downcast_ref::<TypescriptParseError>() {
+                eprintln!("{}", err);
+                eprintln!("{}", style(contents).dim());
+                eprintln!(
+                    "{}{}",
+                    style(format!(
+                        "{:─^width$}",
+                        "",
+                        width = pe.column().saturating_sub(1)
+                    ))
+                    .red(),
+                    "^"
+                );
+            } else {
+                return Err(err);
+            }
+        }
+    };
+    Ok(())
+}
+#[allow(unused)]
+pub fn run2() -> Result<(), Error> {
+    use super::tots::EntryList;
+
+    // chop off cargo
+    let mut args = env::args_os();
+
+    let opts = Opts::from_iter(args);
+
+    // let contents = fs::read_to_string(opts.path.unwrap().as_path())?;
+    let contents = opts.cmd.unwrap();
+
+
+    set_colors_enabled(true);
+
+    match EntryList::parse(&contents) {
+        Ok(res) => println!("Done: {:?}", res),
         Err(err) => {
             if let Some(ref pe) = err.downcast_ref::<TypescriptParseError>() {
                 eprintln!("{}", err);

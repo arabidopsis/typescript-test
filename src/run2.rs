@@ -1,3 +1,4 @@
+#![allow(unused)]
 use serde_json;
 use failure::Error;
 use std::collections::HashMap;
@@ -14,6 +15,7 @@ macro_rules! addit2 {
         $hm.push((k.into(),f.into(),json));
     };
 }
+
 
 pub fn run() -> Result<(), Error> {
     use super::interface::*;

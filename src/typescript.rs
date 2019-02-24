@@ -8,7 +8,6 @@ use pest_derive::Parser;
 use proc_macro2::Literal;
 use proc_macro2::TokenStream;
 use quote::quote;
-use std::cell::RefCell;
 
 use proc_macro2::{Ident, Span};
 
@@ -39,12 +38,13 @@ impl TypescriptParseError {
 }
 
 #[derive(Parser)]
-#[grammar = "typescript.pest"]
+#[grammar = "entries.pest"]
 struct TypescriptParser;
 
 pub struct Typescript {
     only_first: bool,
-    var: RefCell<i32>,
+    var: i32,
+
 }
 
 struct Ret {
@@ -59,11 +59,16 @@ impl Typescript {
     pub fn with_first(only_first: bool) -> Self {
         Typescript {
             only_first: only_first,
-            var: RefCell::new(0),
+            var: 0,
         }
     }
+    pub fn verify<'a>(typescript: &str) -> Result<pest::iterators::Pairs<'_,Rule>, Error> {
+        Ok(
+            TypescriptParser::parse(Rule::typescript, typescript).map_err(TypescriptParseError)?
+        )
+    }
 
-    pub fn parse(&self, obj: &TokenStream, typescript: &str) -> Result<TokenStream, Error> {
+    pub fn parse(&mut self, obj: &TokenStream, typescript: &str) -> Result<TokenStream, Error> {
         let pair = TypescriptParser::parse(Rule::typescript, typescript)
             .map_err(TypescriptParseError)?
             .next() // skip SOI
@@ -101,8 +106,9 @@ impl Typescript {
             }
         ))
     }
-    fn parse_expr<'a>(&self, obj: &TokenStream, expr: Pair<'a, Rule>) -> Result<Ret, Error> {
+    fn parse_expr<'a>(&mut self, obj: &TokenStream, expr: Pair<'a, Rule>) -> Result<Ret, Error> {
         // expr = { union | "(" ~ expr ~ ")" }
+
         let mut content = vec![];
         let mut is_union = false;
         let mut size = 0;
@@ -134,7 +140,7 @@ impl Typescript {
             need_undef: n,
         })
     }
-    fn parse_item<'a>(&self, obj: &TokenStream, item: Pair<'a, Rule>) -> Result<Ret, Error> {
+    fn parse_item<'a>(&mut self, obj: &TokenStream, item: Pair<'a, Rule>) -> Result<Ret, Error> {
         let mut i = item.into_inner();
         // item = { singleton ~ array  }
         let (singleton, array) = (i.next().unwrap(), i.next().unwrap());
@@ -145,17 +151,17 @@ impl Typescript {
         assert!(narr * 2 == n);
         let mut size = 0;
         let mut is_union = false;
-        let val = obj; // self.pushvar();
-                       // singleton = { str | map | tuple | typ | "(" ~ union ~ ")" }
+        let val = &obj; // self.pushvar();
+        // singleton = { str | map | tuple | typ | "(" ~ union ~ ")" }
         for singleton_pair in singleton.into_inner() {
             content.push(match singleton_pair.as_rule() {
-                Rule::map => self.parse_map(&val, singleton_pair)?,
-                Rule::str => self.parse_struct(&val, singleton_pair)?,
-                Rule::tuple => self.parse_tuple(&val, singleton_pair)?,
-                Rule::typ => self.parse_typ(&val, singleton_pair)?,
+                Rule::map => self.parse_map(val, singleton_pair)?,
+                Rule::str => self.parse_struct(val, singleton_pair)?,
+                Rule::tuple => self.parse_tuple(val, singleton_pair)?,
+                Rule::typ => self.parse_typ(val, singleton_pair)?,
                 Rule::union => {
                     is_union = true;
-                    let (q, n) = self.parse_union(&val, singleton_pair)?;
+                    let (q, n) = self.parse_union(val, singleton_pair)?;
                     size = n;
                     q
                 }
@@ -212,7 +218,7 @@ impl Typescript {
             })
         }
     }
-    fn parse_typ<'a>(&self, obj: &TokenStream, typ: Pair<'a, Rule>) -> Result<Ret, Error> {
+    fn parse_typ<'a>(&mut self, obj: &TokenStream, typ: Pair<'a, Rule>) -> Result<Ret, Error> {
         // typ = { "number" | "object" | "string" | "boolean" | "null" }
         let typ = typ.as_str();
         let eq = eq();
@@ -223,7 +229,7 @@ impl Typescript {
             need_undef: false,
         })
     }
-    fn parse_map<'a>(&self, obj: &TokenStream, map: Pair<'a, Rule>) -> Result<Ret, Error> {
+    fn parse_map<'a>(&mut self, obj: &TokenStream, map: Pair<'a, Rule>) -> Result<Ret, Error> {
         // map = {  "{" ~ "[" ~ "key" ~ ":" ~ key ~ "]" ~ ":" ~ expr ~ "}" }
         let mut i = map.into_inner();
         let (typ, expr) = (i.next().unwrap(), i.next().unwrap());
@@ -266,7 +272,7 @@ impl Typescript {
         })
     }
     fn parse_union<'a>(
-        &self,
+        &mut self,
         obj: &TokenStream,
         union: Pair<'a, Rule>,
     ) -> Result<(Ret, usize), Error> {
@@ -275,7 +281,7 @@ impl Typescript {
         // let val = self.pushvar();
         for item in union.into_inner() {
             match item.as_rule() {
-                Rule::item => results.push(self.parse_item(&obj, item)?),
+                Rule::item => results.push(self.parse_item(obj, item)?),
                 _ => unreachable!(),
             }
         }
@@ -301,15 +307,15 @@ impl Typescript {
             )
         };
 
-        return Ok((
+        Ok((
             Ret {
                 result: ret,
                 need_undef: need,
             },
             n,
-        ));
+        ))
     }
-    fn parse_tuple<'a>(&self, obj: &TokenStream, tuple: Pair<'a, Rule>) -> Result<Ret, Error> {
+    fn parse_tuple<'a>(&mut self, obj: &TokenStream, tuple: Pair<'a, Rule>) -> Result<Ret, Error> {
         // tuple = { "[" ~ expr ~ ("," ~ expr )+ ~ "]" }
         let mut content = vec![];
         let eq = eq();
@@ -349,7 +355,7 @@ impl Typescript {
             need_undef: false,
         })
     }
-    fn parse_struct<'a>(&self, obj: &TokenStream, pair: Pair<'a, Rule>) -> Result<Ret, Error> {
+    fn parse_struct<'a>(&mut self, obj: &TokenStream, pair: Pair<'a, Rule>) -> Result<Ret, Error> {
         // str = {  "{" ~ (ident ~ ":" ~ expr)? ~ ("," ~ ident ~ ":" ~ expr )* ~ "}" }
         let mut keys = vec![];
         let mut values = vec![];
@@ -387,20 +393,18 @@ impl Typescript {
         })
     }
 
-    fn pushvar(&self) -> TokenStream {
-        let mut var = self.var.borrow_mut();
-        *var += 1;
+    fn pushvar(&mut self) -> TokenStream {
+        self.var += 1;
 
-        let n = ident_from_str(&format!("val{}", *var));
+        let n = ident_from_str(&format!("val{}", self.var));
         quote!(#n)
     }
-    fn popvar(&self) {
-        let mut var = self.var.borrow_mut();
-        *var -= 1;
-        assert!(*var >= 0);
+    fn popvar(&mut self) {
+        self.var -= 1;
+        assert!(self.var >= 0);
     }
     fn level(&self) -> i32 {
-        return *self.var.borrow();
+        self.var
     }
 }
 
@@ -411,7 +415,7 @@ mod parser {
     use quote::quote;
     //#[test]
     fn typescript_parser() {
-        let t = Typescript::new();
+        let mut t = Typescript::new();
         match t.parse(&quote!(obj), &"[number, string]|{ [key: number]: string}[][] | {a: number} | (number|{a:{b:number}})") {
             Ok(q) => {eprintln!("{}", patch(&q.to_string()))},
             Err(msg) => assert!(false, msg)
@@ -419,7 +423,7 @@ mod parser {
     }
     #[test]
     fn typescript_parser2() {
-        let t = Typescript::new();
+        let mut t = Typescript::new();
         match t.parse(&quote!(obj), &"[number, string][]") {
             Ok(q) => eprintln!("{}", patch(&q.to_string())),
             Err(msg) => assert!(false, msg),

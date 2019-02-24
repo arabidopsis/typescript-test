@@ -54,7 +54,7 @@ pub struct DependsOnValue {
 
 #[derive(TypescriptDefinition, Serialize, TypeScriptify)]
 #[serde(tag = "tag", content = "fields")]
-#[typescript(guard = "true")]
+#[ts(guard = "true")]
 /// This is some API Event.
 pub enum FrontendMessage {
     Init {
@@ -126,7 +126,7 @@ pub struct Record {
 }
 #[derive(Serialize, TypescriptDefinition)]
 pub struct Search {
-    #[typescript(array_check = "first")]
+    #[ts(array_check = "first")]
     pub results: Result<Vec<Record>, String>,
 }
 
@@ -139,14 +139,13 @@ pub enum TyEnum {
 
 #[derive(Serialize, TypescriptDefinition)]
 pub struct Value2<T> {
-    #[typescript(user_type_guard = true)]
+    #[ts(ts_guard = "object")]
     pub value: T,
 }
 
 #[derive(Serialize, TypescriptDefinition)]
 pub struct DependsOnValue2 {
-    #[typescript(user_type_guard = true)]
-    pub value: Value2<Vec<i32>>,
+    pub value: Value2<i32>,
 }
 
 // use chrono::prelude::*;
@@ -154,7 +153,7 @@ use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 #[derive(Serialize, TypescriptDefinition)]
 pub struct Chrono {
-    #[typescript(ts_type = "string")]
+    // #[ts(ts_type = "string")]
     // pub datetime: DateTime<Local>,
     pub duration: Duration,
     pub systime: SystemTime,
