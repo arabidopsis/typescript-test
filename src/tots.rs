@@ -36,7 +36,9 @@ impl TypescriptParseError {
             pest::error::LineColLocation::Span((row, _), _) => row,
         }
     }
-}   
+}
+
+
 pub struct TSType {
     ident: syn::Ident,
     args: Vec<syn::Type>,
@@ -51,16 +53,26 @@ struct TypescriptParser;
 pub struct Typescript {
 }
 
+
+struct Binding<'a> {
+    entries: &'a EntryList,
+    entry: Rc<Entry>,
+}
+
 struct Ret {
     result: TokenStream,
 }
+fn make_err(msg : &str, span: ::pest::Span) -> TypescriptParseError {
+    use pest::error::{ErrorVariant, Error};
+    let err = Error::<Rule>::new_from_span(
+            ErrorVariant::CustomError {
+                message : msg.into()} , span);
+    TypescriptParseError(err)
+}
+impl<'a> Binding<'a> {
 
-impl Entry {
-
-
-
-    pub fn parse(&self, ts: &TSType) -> Result<TokenStream, Error> {
-        let pair = TypescriptParser::parse(Rule::typescript, &self.expr)
+    pub fn parse(&self, ts: &TSType, el : &EntryList) -> Result<TokenStream, Error> {
+        let mut pair = TypescriptParser::parse(Rule::typescript, &self.entry.expr)
             .map_err(TypescriptParseError)?
             .next() // skip SOI
             .unwrap();
@@ -71,7 +83,7 @@ impl Entry {
                 other => assert_eq!(other, Rule::expr),
             }
             content.push({
-                self.parse_expr(ts, item)?.result
+                self.parse_expr(ts, item, el)?.result
             });
         }
         assert!(content.len() == 1);
@@ -82,14 +94,14 @@ impl Entry {
             }
         ))
     }
-    fn parse_expr(&self, ts: &TSType, expr: Pair<'_, Rule>) -> Result<Ret, Error> {
+    fn parse_expr(&self, ts: &TSType, expr: Pair<'_, Rule>, el : &EntryList) -> Result<Ret, Error> {
         // expr = { union | "(" ~ expr ~ ")" }
         let mut content = vec![];
 
         for u in expr.into_inner() {
             content.push(match u.as_rule() {
-                Rule::union => self.parse_union(ts, u)?.result,
-                Rule::expr => self.parse_expr(ts, u)?.result,
+                Rule::union => self.parse_union(ts, u, el)?.result,
+                Rule::expr => self.parse_expr(ts, u, el)?.result,
 
                 _ => unreachable!(),
             })
@@ -100,7 +112,7 @@ impl Entry {
             result: quote!( #(#content)* )
         })
     }
-    fn parse_item(&self, ts: &TSType, item: Pair<'_, Rule>) -> Result<Ret, Error> {
+    fn parse_item(&self, ts: &TSType, item: Pair<'_, Rule>, el : &EntryList) -> Result<Ret, Error> {
         use std::str::FromStr;
         let mut i = item.into_inner();
         // item = { singleton ~ array  }
@@ -111,11 +123,11 @@ impl Entry {
         // singleton = { str | map | tuple | typ | "(" ~ union ~ ")" }
         for singleton_pair in singleton.into_inner() {
             content.push(match singleton_pair.as_rule() {
-                Rule::map => self.parse_map(ts, singleton_pair)?.result,
-                Rule::str => self.parse_struct(ts, singleton_pair)?.result,
-                Rule::tuple => self.parse_tuple(ts, singleton_pair)?.result,
-                Rule::typ => self.parse_typ(ts, singleton_pair)?.result,
-                Rule::union => self.parse_union(ts, singleton_pair)?.result,
+                Rule::map => self.parse_map(ts, singleton_pair, el)?.result,
+                Rule::str => self.parse_struct(ts, singleton_pair, el)?.result,
+                Rule::tuple => self.parse_tuple(ts, singleton_pair, el)?.result,
+                Rule::typ => self.parse_typ(ts, singleton_pair, el)?.result,
+                Rule::union => self.parse_union(ts, singleton_pair, el)?.result,
                 _ => unreachable!(),
             });
         }
@@ -128,24 +140,29 @@ impl Entry {
         })
 
     }
-    fn to_ts(&self, ty: & syn::Type) -> proc_macro2::TokenStream {
+    fn to_ts(&self, ty: & syn::Type, el : &EntryList) -> proc_macro2::TokenStream {
+        // FIXME...
+        // ty should be a path
+
+        // last_path_element(&syn::Path) -> ty1: TSType or FieldContext::get_path
+        // el.find_entry(ty1.path) -> entry
+        // entry.parse(&ty1, entry.expr, el)
         quote!()
     }
-    fn parse_typ(&self, ts: &TSType, typ: Pair<'_, Rule>) -> Result<Ret, Error> {
+    fn parse_typ(&self, ts: &TSType, typ: Pair<'_, Rule>, el : &EntryList) -> Result<Ret, Error> {
         // typ = { "number" | "object" | "string" | "boolean" | "null" | #ident }
         let ident = typ.as_str();
         let k = if ident.starts_with("#") {
-            let idx = ident[1..].parse::<usize>()?;
-            if idx >= ts.args.len() {
-                use pest::error::{ErrorVariant, Error};
-                let span = typ.as_span();
-                let err = Error::<Rule>::new_from_span(
-                        ErrorVariant::CustomError {
-                            message : format!("type is out of bounds {}", idx)} , 
-                        span);
-                return Err(err.into())
+            let arg = ident[1..].to_string();
+            if let Some((idx, _)) = self.entry.generics.iter().enumerate().find(|&(i,s)| *s == arg) {
+                if idx >= ts.args.len() {
+                    return Err(make_err(&format!("type is out of bounds {}", ident), typ.as_span()).into())
+                } else {
+                  self.to_ts(&ts.args[idx], el)
+                }
+            } else {
+                return Err(make_err(&format!("no such generic {}", ident), typ.as_span()).into())
             }
-            self.to_ts(&ts.args[idx])
         } else { 
             let i = ident_from_str(ident);
             quote!(#i)
@@ -157,15 +174,14 @@ impl Entry {
             )
         })
     }
-    fn parse_map(&self, ts: &TSType, map: Pair<'_, Rule>) -> Result<Ret, Error> {
+    fn parse_map(&self, ts: &TSType, map: Pair<'_, Rule>, el : &EntryList) -> Result<Ret, Error> {
         // map = {  "{" ~ "[" ~ "key" ~ ":" ~ key ~ "]" ~ ":" ~ expr ~ "}" }
         let mut i = map.into_inner();
         let (typ, expr) = (i.next().unwrap(), i.next().unwrap());
 
-        let key = self.parse_typ(ts, typ)?.result;
+        let key = self.parse_typ(ts, typ, el)?.result;
 
-        let result = self.parse_expr(ts, expr)?.result;
-
+        let result = self.parse_expr(ts, expr, el)?.result;
 
         Ok(Ret {
             result: quote!(
@@ -177,12 +193,13 @@ impl Entry {
         &self,
         ts: &TSType,
         union: Pair<'_, Rule>,
+        el : &EntryList,
     ) -> Result<Ret, Error> {
         // union = {   item ~ ("|" ~ item)*  }
         let mut results = vec![];
         for item in union.into_inner() {
             match item.as_rule() {
-                Rule::item => results.push(self.parse_item(ts, item)?.result),
+                Rule::item => results.push(self.parse_item(ts, item, el)?.result),
                 _ => unreachable!(),
             }
         }
@@ -195,7 +212,7 @@ impl Entry {
             }
         )
     }
-    fn parse_tuple(&self, ts: &TSType, tuple: Pair<'_, Rule>) -> Result<Ret, Error> {
+    fn parse_tuple(&self, ts: &TSType, tuple: Pair<'_, Rule>, el : &EntryList) -> Result<Ret, Error> {
         // tuple = { "[" ~ expr ~ ("," ~ expr )+ ~ "]" }
         let mut content = vec![];
 
@@ -203,7 +220,7 @@ impl Entry {
 
             match expr.as_rule() {
                 Rule::expr => {
-                    let verify = self.parse_expr(ts, expr)?.result;
+                    let verify = self.parse_expr(ts, expr, el)?.result;
                     content.push(quote! {
                         #verify;
                     });
@@ -217,14 +234,14 @@ impl Entry {
             )
         })
     }
-    fn parse_struct(&self, ts: &TSType, pair: Pair<'_, Rule>) -> Result<Ret, Error> {
+    fn parse_struct(&self, ts: &TSType, pair: Pair<'_, Rule>, el : &EntryList) -> Result<Ret, Error> {
         // str = {  "{" ~ (ident ~ ":" ~ expr)? ~ ("," ~ ident ~ ":" ~ expr )* ~ "}" }
         let mut keys = vec![];
         let mut values = vec![];
         for expr in pair.into_inner() {
             match expr.as_rule() {
                 Rule::ident => keys.push(ident_from_str(&expr.as_str())),
-                Rule::expr => values.push(self.parse_expr(ts, expr)?.result),
+                Rule::expr => values.push(self.parse_expr(ts, expr, el)?.result),
                 _ => unreachable!(),
             }
         }
@@ -235,7 +252,7 @@ impl Entry {
 
 }
 
-#[derive(Hash, PartialEq, Debug)]
+#[derive(Debug)]
 pub struct Entry {
     pub path: Vec<Vec<String>>,
     pub generics: Vec<String>,
@@ -243,20 +260,39 @@ pub struct Entry {
 }
 
 
-
+use std::collections::HashMap;
+use std::rc::Rc;
 #[derive(Debug)]
 pub struct EntryList {
-    pub entries: Vec<Entry>,
+    pub entries: HashMap<Vec<String>,Rc<Entry>>,
 }
 
 impl EntryList {
+
+    pub fn add(&mut self, e:Entry) -> Result<(), Error> {
+
+        let e = Rc::new(e);
+        for path in &e.path {
+            self.entries.insert(path.clone(), e.clone());
+        }
+        Ok(())
+    }
+    pub fn find_entry<'a>(&'a self, path: &[String]) -> Option<Binding<'a>>{
+        let e = self.entries.get(path);
+        if let Some(entry) = e {
+            return Some(Binding { entries: &self, entry: entry.clone() })
+        }
+
+        None
+
+    }
 
     pub fn parse(typescript: &str) -> Result<EntryList, Error> {
         let pair = TypescriptParser::parse(Rule::markup, typescript)
             .map_err(TypescriptParseError)?
             .next() // skip SOI
             .unwrap();
-        let mut entrylist = EntryList { entries: vec![] };
+        let mut entrylist = EntryList { entries: HashMap::new() };
 
         for item in pair.into_inner() {
             match item.as_rule() {
@@ -265,7 +301,7 @@ impl EntryList {
             };
             for entry in item.into_inner() {
                 let e = entrylist.parse_entry(entry)?;
-                entrylist.entries.push(e);
+                entrylist.add(e);
 
             }
         }
@@ -287,12 +323,12 @@ impl EntryList {
                 _ =>  unreachable!()
             }
         }
-
         Ok(Entry {
             path,
             generics,
             expr,
         })
+
 
     }
     fn parse_generics(&mut self, generics: Pair<'_, Rule> ) -> Result<Vec<String>, Error> {
@@ -312,11 +348,16 @@ impl EntryList {
             match e.as_rule() {
                 Rule::lhs => {
                     let mut path = vec![];
+                    let span = e.as_span();
                     for lhs in e.into_inner() {
                         match lhs.as_rule() {
                             Rule::ident => { path.push(lhs.as_str().into())},
                             _ => unreachable!()
                         }
+                    }
+
+                    if self.entries.contains_key(&path) {
+                        return Err(make_err(&format!("path already exits {:?}", path), span).into())
                     }
                     ret.push(path)
                 }

@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use super::patch::{eq, nl};
-use failure::{Error, Fail};
+use failure::{Error, Fail };
 use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
@@ -38,7 +38,7 @@ impl TypescriptParseError {
 }
 
 #[derive(Parser)]
-#[grammar = "entries.pest"]
+#[grammar = "typescript.pest"]
 struct TypescriptParser;
 
 pub struct Typescript {
@@ -153,15 +153,15 @@ impl Typescript {
         let mut is_union = false;
         let val = &obj; // self.pushvar();
         // singleton = { str | map | tuple | typ | "(" ~ union ~ ")" }
-        for singleton_pair in singleton.into_inner() {
-            content.push(match singleton_pair.as_rule() {
-                Rule::map => self.parse_map(val, singleton_pair)?,
-                Rule::str => self.parse_struct(val, singleton_pair)?,
-                Rule::tuple => self.parse_tuple(val, singleton_pair)?,
-                Rule::typ => self.parse_typ(val, singleton_pair)?,
+        for o in singleton.into_inner() {
+            content.push(match o.as_rule() {
+                Rule::map => self.parse_map(val, o)?,
+                Rule::object => self.parse_struct(val, o)?,
+                Rule::tuple => self.parse_tuple(val, o)?,
+                Rule::base_type => self.parse_typ(val, o)?,
                 Rule::union => {
                     is_union = true;
-                    let (q, n) = self.parse_union(val, singleton_pair)?;
+                    let (q, n) = self.parse_union(val, o)?;
                     size = n;
                     q
                 }
@@ -429,4 +429,5 @@ mod parser {
             Err(msg) => assert!(false, msg),
         }
     }
+
 }

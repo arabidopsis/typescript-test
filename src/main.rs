@@ -18,7 +18,7 @@ cfg_if! {
         mod run3;
 
         fn main() -> Result<(), Error> {
-            run3::run2()
+            run3::run3()
         }
     } else {
 
