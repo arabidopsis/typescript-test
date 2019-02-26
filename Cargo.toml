@@ -13,8 +13,8 @@ crate-type = ["cdylib"]
 
 serde = { version = "1.0.87", features = ["derive"] }
 serde_json = "1"
-typescript-definitions = { version="0.1",  path = "../wasm-typescript-definition", features = ["type-guards"] }
-wasm-bindgen = "0.2"
+
+
 chrono = { version = "0.4", features = ["serde"] }
 either = { version = "1.5", features = ["serde"] }
 regex = "1.1.0"
@@ -31,5 +31,12 @@ bytes = "0.4.11"
 cfg-if = "0.1"
 im = { version = "12.3.1", features = ["serde"] }
 
+
+
+#[target.'cfg(target_arch="wasm32")'.dependencies]
+#typescript-definitions = { version="0.1",  path = "../typescript-definitions", features = ["type-guards", "wasm32"] }
+#wasm-bindgen = "0.2"
+
 [target.'cfg(not(target_arch="wasm32"))'.dependencies]
 console = "0.7.5"
+typescript-definitions = { version="0.1",  path = "../typescript-definitions", features = ["type-guards"] }
