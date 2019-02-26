@@ -91,6 +91,8 @@ pub fn jsontest(_opts : Opts) -> Result<(), Error> {
             }}
     addit2! {hm, Either { either: either::Either::Left(addr.clone()) }}
 
+    addit2! {hm, TwoSkip { a: 32 , b:33 }}
+
     println!("{}", serde_json::to_string(&hm)?);
 
     Ok(())

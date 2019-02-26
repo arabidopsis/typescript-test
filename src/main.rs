@@ -2,13 +2,14 @@
 
 #[macro_use]
 extern crate cfg_if;
-use std::env;
+
 
 
 mod interface;
 
 cfg_if! {
  if #[cfg(not(target_arch="wasm32"))] {
+        use std::env;
         use std::path::PathBuf;
         use structopt::StructOpt;
 

@@ -34,7 +34,7 @@ js/src/mywasm.ts : pkg/mywasm.d.ts
 tsc:
 	@cd js; tsc
 
-test_guard:
+test_guard: bindgen tsc
 	@cargo run -- --test=jsontest > junk.json
 	@node js/dist/node2.js --file junk.json --all
 
