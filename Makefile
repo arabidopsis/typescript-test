@@ -1,7 +1,7 @@
 
 
 bindgen:
-	cargo +nightly build --target wasm32-unknown-unknown
+	WASM32=1 cargo +nightly build --target wasm32-unknown-unknown
 	@mkdir pkg 2> /dev/null || true
 	wasm-bindgen target/wasm32-unknown-unknown/debug/mywasm.wasm --typescript --out-dir  pkg/
 	@tail -n +2 pkg/mywasm.d.ts | prettier --parser typescript > js/src/mywasm.ts
@@ -9,7 +9,7 @@ bindgen:
 
 wasm:
 	#RUST_LOG=error wasm-pack build --dev
-	wasm-pack build --dev
+	WASM32=1 wasm-pack build --dev
 	@tail -n +2 pkg/mywasm.d.ts | prettier --parser typescript > js/src/mywasm.ts
 
 install:

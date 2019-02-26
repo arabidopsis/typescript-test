@@ -2,8 +2,6 @@
 
 use serde::Serialize;
 use typescript_definitions::{TypeScriptify, TypescriptDefinition};
-// if you only want to generate ts then you
-// can uncomment the next line.
 
 #[cfg(target_arch="wasm32")]
 use wasm_bindgen::prelude::*;

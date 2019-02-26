@@ -30,13 +30,12 @@ lazy_static = "1.2.0"
 bytes = "0.4.11"
 cfg-if = "0.1"
 im = { version = "12.3.1", features = ["serde"] }
+typescript-definitions = { version="0.1",  path = "../typescript-definitions", features = ["type-guards"] }
 
 
 
-#[target.'cfg(target_arch="wasm32")'.dependencies]
-#typescript-definitions = { version="0.1",  path = "../typescript-definitions", features = ["type-guards", "wasm32"] }
-#wasm-bindgen = "0.2"
+[target.'cfg(target_arch="wasm32")'.dependencies]
+wasm-bindgen = "0.2.37"
 
 [target.'cfg(not(target_arch="wasm32"))'.dependencies]
 console = "0.7.5"
-typescript-definitions = { version="0.1",  path = "../typescript-definitions", features = ["type-guards"] }

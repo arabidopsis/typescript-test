@@ -539,3 +539,10 @@ export const isEither = (obj: any): obj is Either => {
   }
   return true;
 };
+
+export type TwoSkip = number;
+
+export const isTwoSkip = (obj: any): obj is TwoSkip => {
+  if (!(typeof obj === "number")) return false;
+  return true;
+};
