@@ -2,34 +2,15 @@
 // use serde_json::Error;
 use super::patch::patch;
 use super::typescript::{Typescript, TypescriptParseError};
-use structopt::StructOpt;
 // use std::fs;
 use console::{set_colors_enabled, style};
 use failure::{err_msg, Error};
 use quote::quote;
-use std::env;
-use std::path::PathBuf;
-
-#[derive(StructOpt, Debug)]
-#[structopt(bin_name = "typescript")]
-pub struct Opts {
-    /// Path to Cargo.toml
-    #[structopt(long, value_name = "PATH", parse(from_os_str))]
-    pub path: Option<PathBuf>,
-    #[structopt(long)]
-    pub cmd: Option<String>,
-    #[structopt(long)]
-    pub first: bool,
-}
+use super::Opts;
 
 #[allow(unused)]
-pub fn run() -> Result<(), Error> {
-    // chop off cargo
-    let mut args = env::args_os();
+pub fn parsetest(opts : Opts) -> Result<(), Error> {
 
-    let opts = Opts::from_iter(args);
-
-    // let contents = fs::read_to_string(opts.path.unwrap().as_path())?;
     let contents = opts.cmd.unwrap();
 
     let mut t = Typescript::with_first(opts.first);
@@ -60,14 +41,10 @@ pub fn run() -> Result<(), Error> {
     Ok(())
 }
 #[allow(unused)]
-pub fn run2() -> Result<(), Error> {
+pub fn run2(opts: Opts) -> Result<(), Error> {
     use super::tots::EntryList;
     use super::tots::TypescriptParseError;
 
-    // chop off cargo
-    let mut args = env::args_os();
-
-    let opts = Opts::from_iter(args);
 
     // let contents = fs::read_to_string(opts.path.unwrap().as_path())?;
     let contents = opts.cmd.unwrap();
@@ -97,17 +74,12 @@ pub fn run2() -> Result<(), Error> {
     };
     Ok(())
 }
-
-pub fn run3() -> Result<(), Error> {
+#[allow(unused)]
+pub fn typescript(opts : Opts) -> Result<(), Error> {
     use std::env;
     use std::fs::File;
     use std::io::{BufRead, BufReader};
-    // use std::path::Path;
 
-    // chop off cargo
-    let args = env::args_os();
-
-    let opts = Opts::from_iter(args);
 
     // let contents = fs::read_to_string(opts.path.unwrap().as_path())?;
     let path = opts.path.unwrap();
@@ -132,7 +104,7 @@ pub fn run3() -> Result<(), Error> {
             Err(err) => {
                 nerr += 1;
                 println!(
-                    "/*\n{}\n*/",
+                    "/* ERROR:\n{}\n*/",
                     err.to_string() // .split('\n')
                                     // .map(|l| format!("// {}", l))
                                     // .collect::<Vec<_>>()

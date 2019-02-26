@@ -4,7 +4,7 @@ use failure::Error;
 use std::collections::HashMap;
 use std::borrow::Cow;
 use regex::Regex;
-    
+use super::Opts;
 
 macro_rules! addit2 {
     ($hm:ident, $e:expr) => {
@@ -17,7 +17,7 @@ macro_rules! addit2 {
 }
 
 
-pub fn run() -> Result<(), Error> {
+pub fn jsontest(_opts : Opts) -> Result<(), Error> {
     use super::interface::*;
     let mut hm: Vec<(String,String,String)> = vec![];
 

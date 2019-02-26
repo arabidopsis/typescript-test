@@ -5,5 +5,5 @@ Cargo.lock
 node_modules
 *.map
 *junk*
-/js/dist/
+/js/dist
 package-lock.json

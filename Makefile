@@ -34,12 +34,15 @@ js/src/mywasm.ts : pkg/mywasm.d.ts
 tsc:
 	@cd js; tsc
 
-run:
-	@cargo run > junk.json
+test_guard:
+	@cargo run -- --test=jsontest > junk.json
 	@node js/dist/node2.js --file junk.json --all
 
 
 pest:
-	@cargo run -- --cmd "$cmd" | prettier --parser typescript | bat -l typescript
+	@cargo run -- --test=parsetest --cmd "$cmd" | prettier --parser typescript | bat -l typescript
+
+test_pest:
+	@cargo run -- --test=typescript --path src/test_pest.ts | prettier --parser typescript | bat -l typescript --theme=zenburn
 
 .PHONY: pretty install wasm bindgen tsc run pest

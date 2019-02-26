@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use super::patch::{eq, nl};
-use failure::{Error, Fail };
+use failure::{Error, Fail};
 use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
@@ -44,7 +44,6 @@ struct TypescriptParser;
 pub struct Typescript {
     only_first: bool,
     var: i32,
-
 }
 
 struct Ret {
@@ -58,14 +57,12 @@ impl Typescript {
     }
     pub fn with_first(only_first: bool) -> Self {
         Typescript {
-            only_first: only_first,
+            only_first,
             var: 0,
         }
     }
-    pub fn verify<'a>(typescript: &str) -> Result<pest::iterators::Pairs<'_,Rule>, Error> {
-        Ok(
-            TypescriptParser::parse(Rule::typescript, typescript).map_err(TypescriptParseError)?
-        )
+    pub fn verify(typescript: &str) -> Result<pest::iterators::Pairs<'_, Rule>, Error> {
+        Ok(TypescriptParser::parse(Rule::typescript, typescript).map_err(TypescriptParseError)?)
     }
 
     pub fn parse(&mut self, obj: &TokenStream, typescript: &str) -> Result<TokenStream, Error> {
@@ -152,7 +149,7 @@ impl Typescript {
         let mut size = 0;
         let mut is_union = false;
         let val = &obj; // self.pushvar();
-        // singleton = { str | map | tuple | typ | "(" ~ union ~ ")" }
+                        // singleton = { str | map | tuple | typ | "(" ~ union ~ ")" }
         for o in singleton.into_inner() {
             content.push(match o.as_rule() {
                 Rule::map => self.parse_map(val, o)?,

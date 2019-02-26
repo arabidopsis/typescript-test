@@ -277,7 +277,7 @@ impl EntryList {
         }
         Ok(())
     }
-    pub fn find_entry<'a>(&'a self, path: &[String]) -> Option<Binding<'a>>{
+    fn find_entry<'a>(&'a self, path: &[String]) -> Option<Binding<'a>>{
         let e = self.entries.get(path);
         if let Some(entry) = e {
             return Some(Binding { entries: &self, entry: entry.clone() })
